@@ -11,6 +11,36 @@ A full-stack application that processes an orders dataset and produces useful an
 - **Infrastructure:** Terraform (AWS EC2)
 - **CI/CD:** GitHub Actions
 
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                      AWS EC2 Instance                     │
+│                                                          │
+│  ┌─────────┐     ┌──────────────────────────────────┐   │
+│  │  Nginx  │────▶│        Docker Compose             │   │
+│  │  :80    │     │                                    │   │
+│  └─────────┘     │  ┌──────────┐    ┌────────────┐  │   │
+│                   │  │ Frontend │    │  Backend   │  │   │
+│       /  ────────▶│  │ React    │    │  Django    │  │   │
+│                   │  │ :3000    │    │  DRF :8000 │  │   │
+│      /api/ ──────▶│  └──────────┘    └─────┬──────┘  │   │
+│                   │                        │         │   │
+│                   │                  ┌─────▼──────┐  │   │
+│                   │                  │   MySQL    │  │   │
+│                   │                  │   :3306    │  │   │
+│                   │                  └────────────┘  │   │
+│                   └──────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Data Flow:**
+```
+CSV File ──▶ Upload API ──▶ Parse & Validate ──▶ MySQL DB
+                                                     │
+Browser ◀── React UI ◀── Analytics API ◀── Django ORM ◀─┘
+```
+
 ## Project Structure
 
 ```
@@ -109,6 +139,26 @@ docker-compose exec backend python manage.py test
 # Frontend tests
 docker-compose exec frontend npm test
 ```
+
+### Test Coverage
+
+The backend includes **16 unit and integration tests** covering:
+
+| Test Suite | What's Tested |
+|------------|---------------|
+| `OrderModelTest` | Model properties and string representation |
+| `OrderServiceParseCSVTest` | CSV parsing: valid data, missing columns, invalid order_id, empty SKU, negative quantity, invalid price, empty file |
+| `OrderServiceAnalyticsTest` | Revenue calculation, best-selling SKU identification, empty database edge case |
+| `OrderAPITest` | API endpoints: list orders, analytics response, import with no file, import valid CSV |
+
+Error handling scenarios tested:
+- Missing/invalid CSV columns
+- Non-numeric `order_id`
+- Empty SKU values
+- Negative quantities
+- Invalid price formats
+- Empty CSV files
+- Missing file upload
 
 ## Deployment (AWS EC2)
 
