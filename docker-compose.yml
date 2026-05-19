@@ -1,0 +1,65 @@
+# Docker Compose Configuration
+# Orchestrates three services: MySQL database, Django backend, and React frontend.
+# Usage: docker-compose up --build
+
+services:
+  # MySQL 8.0 Database Service
+  # Stores order data imported from CSV files
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_pass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-allsome_orders}
+      MYSQL_USER: ${MYSQL_USER:-allsome}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-allsome_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql  # Persist data across container restarts
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django REST Framework Backend
+  # Provides API endpoints for order management and analytics
+  backend:
+    build: ./backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app          # Hot-reload for development
+      - ./data:/app/data        # CSV data files
+    ports:
+      - "8000:8000"
+    environment:
+      DB_NAME: ${MYSQL_DATABASE:-allsome_orders}
+      DB_USER: ${MYSQL_USER:-allsome}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-allsome_pass}
+      DB_HOST: db
+      DB_PORT: "3306"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-production}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-True}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+    depends_on:
+      db:
+        condition: service_healthy  # Wait for MySQL to be ready
+
+  # React Frontend
+  # Provides UI for uploading CSV files and viewing analytics
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend/src:/app/src        # Hot-reload for development
+      - ./frontend/public:/app/public
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000}
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
