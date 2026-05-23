@@ -38,3 +38,9 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "github_repo_url" {
+  description = "GitHub repository URL to clone (HTTPS, public repo)"
+  type        = string
+  default     = "https://github.com/adi3246/allsome-orders-analytics.git"
+}

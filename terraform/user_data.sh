@@ -77,6 +77,10 @@ cd /opt/allsome-orders
 
 # Create environment file with secure values
 cat > .env <<EOF
+MYSQL_ROOT_PASSWORD=${db_password}
+MYSQL_DATABASE=allsome_orders
+MYSQL_USER=allsome
+MYSQL_PASSWORD=${db_password}
 DB_NAME=allsome_orders
 DB_USER=allsome
 DB_PASSWORD=${db_password}
@@ -86,7 +90,21 @@ DJANGO_SECRET_KEY=$(openssl rand -base64 48)
 DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=$PUBLIC_IP,localhost
 CORS_ALLOWED_ORIGINS=http://$PUBLIC_IP
-REACT_APP_API_URL=http://$PUBLIC_IP/api
+REACT_APP_API_URL=http://$PUBLIC_IP
 EOF
 
-echo "Server provisioning complete. Deploy application with GitHub Actions."
+# Clone the repository
+apt-get install -y git
+git clone ${github_repo_url} /opt/allsome-orders/app
+cp .env /opt/allsome-orders/app/.env
+cd /opt/allsome-orders/app
+
+# Build and start containers
+docker compose up -d --build
+
+# Wait for database to be healthy, then run migrations and import data
+sleep 30
+docker compose exec -T backend python manage.py migrate
+docker compose exec -T backend python manage.py import_csv /app/data/allsome_interview_test_orders.csv || true
+
+echo "Deployment complete! Application is running at http://$PUBLIC_IP"

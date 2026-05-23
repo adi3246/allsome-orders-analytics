@@ -79,7 +79,8 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
   user_data = templatefile("${path.module}/user_data.sh", {
-    db_password = var.db_password
+    db_password     = var.db_password
+    github_repo_url = var.github_repo_url
   })
 
   root_block_device {

@@ -23,3 +23,6 @@ db_password = "change-me-to-a-strong-password"
 
 # CIDR blocks allowed to SSH (default: open to all - restrict in production!)
 # ssh_allowed_cidr = ["YOUR_IP/32"]
+
+# GitHub repository URL (default: adi3246/allsome-orders-analytics)
+# github_repo_url = "https://github.com/adi3246/allsome-orders-analytics.git"
